@@ -2,7 +2,7 @@ blueprint:
   name: Label state change notifier
   description: >-
     Triggers on state changes for entities in a selected Label and selected
-    state transitions. Exposes helper variables for custom actions.
+    transition rules. Exposes helper variables for custom actions.
   domain: automation
   source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/automation/label_state_change.yaml
   input:
@@ -12,21 +12,31 @@ blueprint:
       selector:
         label: {}
 
-    state_transitions:
-      name: State transition filters
+    transition_rules:
+      name: Transition rules
       description: >-
-        One transition per line (or separated by semicolon).
-        Supported separators between FROM and TO states:
+        One rule per line (or separated by semicolon):
+        <from><sep><to> : <name>
+
+        Supported separators between FROM and TO:
         "->", space, "-", or comma.
+
+        Wildcards:
+        - empty FROM means any source state
+        - "*" as FROM or TO means any value
+
         Examples:
-        off->on
-        disconnected connected
-        unavailable,connected
+        on-off : Отключен
+        off-on : Подключен
+        -unavailable : Недоступен
+        *->on : Включен
+        ->off : Выключен
       default: |-
-        off->on
-        on->off
-        disconnected->connected
-        connected->disconnected
+        on-off : Отключен
+        off-on : Подключен
+        -unavailable : Недоступен
+        *->on : Включен
+        ->off : Выключен
       selector:
         text:
           multiline: true
@@ -37,7 +47,7 @@ blueprint:
         Your actions to run when transition matches.
         Available variables:
         entity_id, entity_name, old_state, new_state,
-        transition, change_type.
+        transition, transition_name.
       selector:
         action: {}
 
@@ -46,7 +56,7 @@ max: 20
 
 variables:
   bp_label_name: !input label_name
-  bp_transition_filters: !input state_transitions
+  bp_transition_rules: !input transition_rules
 
 triggers:
   - trigger: event
@@ -64,18 +74,42 @@ conditions:
       {% elif eid not in label_entities(bp_label_name) %}
         false
       {% else %}
-        {% set pair = (old.state | string | lower) ~ '->' ~ (new.state | string | lower) %}
-        {% set raw = (bp_transition_filters | string | lower).replace('\r', '') %}
+        {% set old_s = old.state | string | lower %}
+        {% set new_s = new.state | string | lower %}
+        {% set raw = (bp_transition_rules | string).replace('\r', '') %}
         {% set rows = raw.replace(';', '\n').split('\n') | map('trim') | reject('equalto', '') | list %}
-        {% set ns = namespace(pairs=[]) %}
+        {% set ns = namespace(match=false) %}
+
         {% for row in rows %}
-          {% set cleaned = row.replace('->', ' ').replace(',', ' ').replace('-', ' ') %}
-          {% set tokens = cleaned.split() %}
-          {% for i in range(0, (tokens | length // 2) * 2, 2) %}
-            {% set ns.pairs = ns.pairs + [ (tokens[i] ~ '->' ~ tokens[i + 1]) ] %}
-          {% endfor %}
+          {% set row_parts = row.split(':', 1) %}
+          {% set lhs = (row_parts[0] if row_parts | length > 0 else '') | trim | lower %}
+
+          {% set p = namespace(frm='', to='') %}
+          {% if '->' in lhs %}
+            {% set pair = lhs.split('->', 1) %}
+            {% set p.frm = pair[0] | trim %}
+            {% set p.to = pair[1] | trim %}
+          {% else %}
+            {% set cleaned = lhs.replace(',', ' ').replace('-', ' ') %}
+            {% set tokens = cleaned.split() %}
+            {% if tokens | length >= 2 %}
+              {% set p.frm = tokens[0] | trim %}
+              {% set p.to = tokens[1] | trim %}
+            {% elif tokens | length == 1 %}
+              {% set p.frm = '' %}
+              {% set p.to = tokens[0] | trim %}
+            {% endif %}
+          {% endif %}
+
+          {% set from_any = p.frm in ['', '*'] %}
+          {% set to_any = p.to in ['', '*'] %}
+
+          {% if (from_any or p.frm == old_s) and (to_any or p.to == new_s) %}
+            {% set ns.match = true %}
+          {% endif %}
         {% endfor %}
-        {{ pair in ns.pairs }}
+
+        {{ ns.match }}
       {% endif %}
 
 actions:
@@ -87,12 +121,45 @@ actions:
       old_state: "{{ trigger.event.data.old_state.state }}"
       new_state: "{{ trigger.event.data.new_state.state }}"
       transition: "{{ old_state ~ '->' ~ new_state }}"
-      change_type: >-
-        {% set ns = new_state | string | lower %}
-        {% if ns in ['off', 'disconnected', 'unavailable', 'unknown'] %}
-          disconnected
-        {% else %}
-          connected
-        {% endif %}
+      transition_name: >-
+        {% set old_s = old_state | string | lower %}
+        {% set new_s = new_state | string | lower %}
+        {% set raw = (bp_transition_rules | string).replace('\r', '') %}
+        {% set rows = raw.replace(';', '\n').split('\n') | map('trim') | reject('equalto', '') | list %}
+        {% set ns = namespace(name=transition) %}
+
+        {% for row in rows %}
+          {% set row_parts = row.split(':', 1) %}
+          {% set lhs = (row_parts[0] if row_parts | length > 0 else '') | trim | lower %}
+          {% set title = (row_parts[1] if row_parts | length > 1 else '') | trim %}
+
+          {% set p = namespace(frm='', to='') %}
+          {% if '->' in lhs %}
+            {% set pair = lhs.split('->', 1) %}
+            {% set p.frm = pair[0] | trim %}
+            {% set p.to = pair[1] | trim %}
+          {% else %}
+            {% set cleaned = lhs.replace(',', ' ').replace('-', ' ') %}
+            {% set tokens = cleaned.split() %}
+            {% if tokens | length >= 2 %}
+              {% set p.frm = tokens[0] | trim %}
+              {% set p.to = tokens[1] | trim %}
+            {% elif tokens | length == 1 %}
+              {% set p.frm = '' %}
+              {% set p.to = tokens[0] | trim %}
+            {% endif %}
+          {% endif %}
+
+          {% set from_any = p.frm in ['', '*'] %}
+          {% set to_any = p.to in ['', '*'] %}
+
+          {% if (from_any or p.frm == old_s) and (to_any or p.to == new_s) %}
+            {% if title != '' and ns.name == transition %}
+              {% set ns.name = title %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+        {{ ns.name }}
 
   - sequence: !input actions

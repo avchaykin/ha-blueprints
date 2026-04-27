@@ -16,8 +16,9 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 ### Inputs
 
 - **Label**: selected from existing Home Assistant labels
-- **State transitions**: list of pairs `from -> to` (newline/semicolon-separated)
+- **Transition rules**: list of lines `<from><sep><to> : <name>` (newline/semicolon-separated)
   - separators between states supported: `->`, space, `-`, comma
+  - wildcard source: empty or `*` (examples: `->off`, `*->on`, `-unavailable`)
 - **Actions**: your custom actions (can use blueprint variables below)
 
 ### Variables available in actions
@@ -27,4 +28,4 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 - `old_state`
 - `new_state`
 - `transition`
-- `change_type` (`connected` / `disconnected`)
+- `transition_name`
