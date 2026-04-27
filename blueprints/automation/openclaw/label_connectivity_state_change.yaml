@@ -1,0 +1,89 @@
+blueprint:
+  name: Label connectivity state change notifier
+  description: >-
+    Triggers on state changes for entities in a given Label and selected
+    state transitions (from->to). Exposes helper variables for custom actions.
+  domain: automation
+  source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/blueprints/automation/openclaw/label_connectivity_state_change.yaml
+  input:
+    label_name:
+      name: Label name
+      description: "Label to monitor (example: Connection)"
+      default: Connection
+      selector:
+        text:
+
+    state_transitions:
+      name: State transition filters
+      description: >-
+        One pair per line in format from->to.
+        You can also separate by comma or semicolon.
+        Example: off->on, on->off
+      default: |-
+        off->on
+        on->off
+        disconnected->connected
+        connected->disconnected
+      selector:
+        text:
+          multiline: true
+
+    actions:
+      name: Actions
+      description: >-
+        Your actions to run when transition matches.
+        Available variables:
+        connection_entity_id, connection_entity_name,
+        connection_old_state, connection_new_state,
+        connection_transition, connection_change_type.
+      selector:
+        action: {}
+
+mode: queued
+max: 20
+
+variables:
+  bp_label_name: !input label_name
+  bp_transition_filters: !input state_transitions
+
+triggers:
+  - trigger: event
+    event_type: state_changed
+
+conditions:
+  - condition: template
+    value_template: >-
+      {% set e = trigger.event.data %}
+      {% set eid = e.entity_id %}
+      {% set old = e.old_state %}
+      {% set new = e.new_state %}
+      {% if eid is none or old is none or new is none %}
+        false
+      {% elif eid not in label_entities(bp_label_name) %}
+        false
+      {% else %}
+        {% set pair = (old.state | string | lower) ~ '->' ~ (new.state | string | lower) %}
+        {% set raw = (bp_transition_filters | string | lower).replace('\r', '') %}
+        {% set normalized = raw.replace(',', '\n').replace(';', '\n').split('\n') %}
+        {% set pairs = normalized | map('trim') | reject('equalto', '') | list %}
+        {{ pair in pairs }}
+      {% endif %}
+
+actions:
+  - variables:
+      connection_entity_id: "{{ trigger.event.data.entity_id }}"
+      connection_entity_name: >-
+        {{ state_attr(trigger.event.data.entity_id, 'friendly_name')
+           or trigger.event.data.entity_id }}
+      connection_old_state: "{{ trigger.event.data.old_state.state }}"
+      connection_new_state: "{{ trigger.event.data.new_state.state }}"
+      connection_transition: "{{ connection_old_state ~ '->' ~ connection_new_state }}"
+      connection_change_type: >-
+        {% set ns = connection_new_state | string | lower %}
+        {% if ns in ['off', 'disconnected', 'unavailable', 'unknown'] %}
+          disconnected
+        {% else %}
+          connected
+        {% endif %}
+
+  - sequence: !input actions
