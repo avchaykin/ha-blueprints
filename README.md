@@ -2,14 +2,16 @@
 
 Home Assistant blueprints by [@avchaykin](https://github.com/avchaykin).
 
+All blueprint files are stored in the repository root.
+
 ## Blueprints
 
-### 1) Label connectivity state change notifier
+### 1) Label state change notifier
 
-- File: `blueprints/automation/openclaw/label_connectivity_state_change.yaml`
+- File: `label_state_change.yaml`
 - Import URL:
 
-`https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/blueprints/automation/openclaw/label_connectivity_state_change.yaml`
+`https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/label_state_change.yaml`
 
 ### Inputs
 
@@ -23,9 +25,9 @@ Home Assistant blueprints by [@avchaykin](https://github.com/avchaykin).
 
 ### Variables available in actions
 
-- `connection_entity_id`
-- `connection_entity_name`
-- `connection_old_state`
-- `connection_new_state`
-- `connection_transition`
-- `connection_change_type` (`connected` / `disconnected`)
+- `entity_id`
+- `entity_name`
+- `old_state`
+- `new_state`
+- `transition`
+- `change_type` (`connected` / `disconnected`)
