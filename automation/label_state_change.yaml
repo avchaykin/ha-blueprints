@@ -1,24 +1,27 @@
 blueprint:
   name: Label state change notifier
   description: >-
-    Triggers on state changes for entities in a given Label and selected
-    state transitions (from->to). Exposes helper variables for custom actions.
+    Triggers on state changes for entities in a selected Label and selected
+    state transitions. Exposes helper variables for custom actions.
   domain: automation
-  source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/label_state_change.yaml
+  source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/automation/label_state_change.yaml
   input:
     label_name:
-      name: Label name
-      description: "Label to monitor (example: Connection)"
-      default: Connection
+      name: Label
+      description: Select an existing Home Assistant label to monitor
       selector:
-        text:
+        label: {}
 
     state_transitions:
       name: State transition filters
       description: >-
-        One pair per line in format from->to.
-        You can also separate by comma or semicolon.
-        Example: off->on, on->off
+        One transition per line (or separated by semicolon).
+        Supported separators between FROM and TO states:
+        "->", space, "-", or comma.
+        Examples:
+        off->on
+        disconnected connected
+        unavailable,connected
       default: |-
         off->on
         on->off
@@ -63,9 +66,16 @@ conditions:
       {% else %}
         {% set pair = (old.state | string | lower) ~ '->' ~ (new.state | string | lower) %}
         {% set raw = (bp_transition_filters | string | lower).replace('\r', '') %}
-        {% set normalized = raw.replace(',', '\n').replace(';', '\n').split('\n') %}
-        {% set pairs = normalized | map('trim') | reject('equalto', '') | list %}
-        {{ pair in pairs }}
+        {% set rows = raw.replace(';', '\n').split('\n') | map('trim') | reject('equalto', '') | list %}
+        {% set ns = namespace(pairs=[]) %}
+        {% for row in rows %}
+          {% set cleaned = row.replace('->', ' ').replace(',', ' ').replace('-', ' ') %}
+          {% set tokens = cleaned.split() %}
+          {% for i in range(0, (tokens | length // 2) * 2, 2) %}
+            {% set ns.pairs = ns.pairs + [ (tokens[i] ~ '->' ~ tokens[i + 1]) ] %}
+          {% endfor %}
+        {% endfor %}
+        {{ pair in ns.pairs }}
       {% endif %}
 
 actions:
