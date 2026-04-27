@@ -65,6 +65,15 @@ blueprint:
           mode: box
           unit_of_measurement: s
 
+    ignore_unknown_unavailable:
+      name: Ignore unknown/unavailable transitions
+      description: >-
+        If enabled, transitions where old_state or new_state is
+        unknown/unavailable are ignored before rule matching.
+      default: false
+      selector:
+        boolean: {}
+
     actions:
       name: Actions
       description: >-
@@ -83,6 +92,7 @@ variables:
   bp_transition_rules: !input transition_rules
   bp_monitored_domains: !input monitored_domains
   bp_debounce_seconds: !input debounce_seconds
+  bp_ignore_unknown_unavailable: !input ignore_unknown_unavailable
 
 triggers:
   - trigger: event
@@ -106,6 +116,10 @@ conditions:
       {% elif (domains | length) > 0 and domain not in domains %}
         false
       {% elif old.state == new.state %}
+        false
+      {% elif (bp_ignore_unknown_unavailable | bool)
+              and ((old.state | string | lower) in ['unknown', 'unavailable']
+                or (new.state | string | lower) in ['unknown', 'unavailable']) %}
         false
       {% else %}
         {% set old_s = old.state | string | lower %}

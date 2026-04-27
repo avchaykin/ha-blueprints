@@ -21,6 +21,7 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
   - wildcard source: empty or `*` (examples: `->off`, `*->on`, `-unavailable`)
 - **Entity domains filter (optional)**: `binary_sensor,sensor` by default, empty = all domains
 - **Debounce seconds**: optional anti-flap hold time before actions
+- **Ignore unknown/unavailable transitions**: toggle to drop these changes before rule matching
 - **Actions**: your custom actions (can use blueprint variables below)
 
 ### Variables available in actions
