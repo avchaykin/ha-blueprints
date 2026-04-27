@@ -58,20 +58,22 @@ variables:
   bp_label_name: !input label_name
   bp_transition_rules: !input transition_rules
 
-trigger_variables:
-  bp_label_name: !input label_name
-
 triggers:
-  - trigger: state
-    entity_id: "{{ label_entities(bp_label_name) }}"
+  - trigger: event
+    event_type: state_changed
 
 conditions:
   - condition: template
     value_template: >-
-      {% set eid = trigger.entity_id %}
-      {% set old = trigger.from_state %}
-      {% set new = trigger.to_state %}
+      {% set e = trigger.event.data %}
+      {% set eid = e.entity_id %}
+      {% set old = e.old_state %}
+      {% set new = e.new_state %}
       {% if eid is none or old is none or new is none %}
+        false
+      {% elif eid not in label_entities(bp_label_name) %}
+        false
+      {% elif old.state == new.state %}
         false
       {% else %}
         {% set old_s = old.state | string | lower %}
@@ -114,12 +116,12 @@ conditions:
 
 actions:
   - variables:
-      entity_id: "{{ trigger.entity_id }}"
+      entity_id: "{{ trigger.event.data.entity_id }}"
       entity_name: >-
-        {{ state_attr(trigger.entity_id, 'friendly_name')
-           or trigger.entity_id }}
-      old_state: "{{ trigger.from_state.state }}"
-      new_state: "{{ trigger.to_state.state }}"
+        {{ state_attr(trigger.event.data.entity_id, 'friendly_name')
+           or trigger.event.data.entity_id }}
+      old_state: "{{ trigger.event.data.old_state.state }}"
+      new_state: "{{ trigger.event.data.new_state.state }}"
       transition: "{{ old_state ~ '->' ~ new_state }}"
       transition_name: >-
         {% set old_s = old_state | string | lower %}

@@ -15,7 +15,7 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 
 ### Inputs
 
-- **Label**: selected from existing Home Assistant labels (used directly in trigger, not post-filter)
+- **Label**: selected from existing Home Assistant labels (checked dynamically)
 - **Transition rules**: list of lines `<from><sep><to> : <name>` (newline/semicolon-separated)
   - separators between states supported: `->`, space, `-`, comma
   - wildcard source: empty or `*` (examples: `->off`, `*->on`, `-unavailable`)
@@ -32,5 +32,5 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 
 ### Notes
 
-- Automation now triggers only for entities from the selected label.
-- If label membership changes, reload automations (or restart HA) to refresh trigger entity list.
+- Label membership changes are applied immediately (no automation reload required).
+- Internally this uses `state_changed` + label filter, so it stays flexible when labels are edited.
