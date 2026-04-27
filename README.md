@@ -28,6 +28,8 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 
 - `entity_id`
 - `entity_name`
+- `entity_area`
+- `entity_area_name`
 - `old_state`
 - `new_state`
 - `transition`

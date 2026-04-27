@@ -80,7 +80,8 @@ blueprint:
         Your actions to run when transition matches.
         Available variables:
         entity_id, entity_name, old_state, new_state,
-        transition, transition_name.
+        transition, transition_name,
+        entity_area, entity_area_name.
       selector:
         action: {}
 
@@ -166,6 +167,8 @@ actions:
       entity_name: >-
         {{ state_attr(trigger.event.data.entity_id, 'friendly_name')
            or trigger.event.data.entity_id }}
+      entity_area: "{{ area_id(trigger.event.data.entity_id) }}"
+      entity_area_name: "{{ area_name(trigger.event.data.entity_id) }}"
       old_state: "{{ trigger.event.data.old_state.state }}"
       new_state: "{{ trigger.event.data.new_state.state }}"
       transition: "{{ old_state ~ '->' ~ new_state }}"
