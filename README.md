@@ -19,6 +19,8 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 - **Transition rules**: list of lines `<from><sep><to> : <name>` (newline/semicolon-separated)
   - separators between states supported: `->`, space, `-`, comma
   - wildcard source: empty or `*` (examples: `->off`, `*->on`, `-unavailable`)
+- **Entity domains filter (optional)**: `binary_sensor,sensor` by default, empty = all domains
+- **Debounce seconds**: optional anti-flap hold time before actions
 - **Actions**: your custom actions (can use blueprint variables below)
 
 ### Variables available in actions
@@ -29,8 +31,10 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 - `new_state`
 - `transition`
 - `transition_name`
+- `entity_domain`
 
 ### Notes
 
 - Label membership changes are applied immediately (no automation reload required).
-- Internally this uses `state_changed` + label filter, so it stays flexible when labels are edited.
+- Internally this uses `state_changed` + dynamic filters, so it stays flexible when labels are edited.
+- Debounce waits N seconds and runs actions only if entity is still in the same `new_state`.

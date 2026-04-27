@@ -41,6 +41,30 @@ blueprint:
         text:
           multiline: true
 
+    monitored_domains:
+      name: Entity domains filter (optional)
+      description: >-
+        Comma/space/semicolon separated list of domains to monitor.
+        Example: binary_sensor, sensor
+        Leave empty to allow all domains.
+      default: binary_sensor,sensor
+      selector:
+        text:
+
+    debounce_seconds:
+      name: Debounce seconds
+      description: >-
+        Wait this many seconds and only continue if entity state is still unchanged.
+        Set 0 to disable debounce.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 300
+          step: 1
+          mode: box
+          unit_of_measurement: s
+
     actions:
       name: Actions
       description: >-
@@ -57,6 +81,8 @@ max: 20
 variables:
   bp_label_name: !input label_name
   bp_transition_rules: !input transition_rules
+  bp_monitored_domains: !input monitored_domains
+  bp_debounce_seconds: !input debounce_seconds
 
 triggers:
   - trigger: event
@@ -69,9 +95,15 @@ conditions:
       {% set eid = e.entity_id %}
       {% set old = e.old_state %}
       {% set new = e.new_state %}
+      {% set domain = eid.split('.')[0] if eid is string and '.' in eid else '' %}
+      {% set raw_domains = (bp_monitored_domains | string | lower).replace('\r', '') %}
+      {% set domains = raw_domains.replace(';', ',').replace('\n', ',').replace(' ', ',').split(',')
+          | map('trim') | reject('equalto', '') | list %}
       {% if eid is none or old is none or new is none %}
         false
       {% elif eid not in label_entities(bp_label_name) %}
+        false
+      {% elif (domains | length) > 0 and domain not in domains %}
         false
       {% elif old.state == new.state %}
         false
@@ -123,6 +155,7 @@ actions:
       old_state: "{{ trigger.event.data.old_state.state }}"
       new_state: "{{ trigger.event.data.new_state.state }}"
       transition: "{{ old_state ~ '->' ~ new_state }}"
+      entity_domain: "{{ entity_id.split('.')[0] if '.' in entity_id else '' }}"
       transition_name: >-
         {% set old_s = old_state | string | lower %}
         {% set new_s = new_state | string | lower %}
@@ -163,5 +196,15 @@ actions:
         {% endfor %}
 
         {{ ns.name }}
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ (bp_debounce_seconds | int(0)) > 0 }}"
+        sequence:
+          - delay:
+              seconds: "{{ bp_debounce_seconds | int(0) }}"
+          - condition: template
+            value_template: "{{ states(entity_id) == new_state }}"
 
   - sequence: !input actions
