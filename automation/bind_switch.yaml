@@ -2,6 +2,7 @@ blueprint:
   name: Bind switch
   description: Bind one or more switch entities to light entities using toggle or sync mode.
   domain: automation
+  source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/automation/bind_switch.yaml
   input:
     switches:
       name: Switch bindings
