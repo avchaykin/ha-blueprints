@@ -4,16 +4,10 @@ blueprint:
   domain: automation
   input:
     switches:
-      name: Switch entities
-      description: Switches that should trigger this automation.
-      selector:
-        entity:
-          multiple: true
-          domain: switch
-    bindings:
-      name: Bindings
+      name: Switch bindings
       description: >-
-        List of bindings. Each item must contain: switch, light, mode (toggle|sync).
+        Map of switch entity_id to config object:
+        { light: <light_entity_id>, mode: toggle|sync }
       selector:
         object: {}
 
@@ -22,11 +16,10 @@ max: 50
 
 variables:
   bp_switches: !input switches
-  bp_bindings: !input bindings
 
 triggers:
   - trigger: state
-    entity_id: !input switches
+    entity_id: "{{ bp_switches.keys() | list }}"
 
 conditions:
   - condition: template
@@ -40,10 +33,11 @@ actions:
   - variables:
       entity_id: "{{ trigger.entity_id }}"
       new_state: "{{ trigger.to_state.state }}"
-      binding: >-
-        {{ (bp_bindings | selectattr('switch', 'equalto', entity_id) | list | first) }}
-      light_entity: "{{ binding.light }}"
-      link_mode: "{{ binding.mode | lower }}"
+      binding: "{{ bp_switches.get(entity_id, {}) }}"
+      light_entity: "{{ binding.get('light') }}"
+      link_mode: "{{ binding.get('mode', '') | lower }}"
+  - condition: template
+    value_template: "{{ light_entity is string and light_entity.startswith('light.') and link_mode in ['toggle', 'sync'] }}"
   - choose:
       - conditions:
           - condition: template
