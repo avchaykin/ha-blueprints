@@ -35,7 +35,7 @@ actions:
       new_state: "{{ trigger.to_state.state }}"
       binding: "{{ bp_switches.get(entity_id, {}) }}"
       light_entity: "{{ binding.get('light') }}"
-      link_mode: "{{ binding.get('mode', '') | lower }}"
+      link_mode: "{{ binding.get('mode', 'toggle') | lower }}"
   - condition: template
     value_template: "{{ light_entity is string and light_entity.startswith('light.') and link_mode in ['toggle', 'sync'] }}"
   - choose:
