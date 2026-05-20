@@ -13,20 +13,18 @@ blueprint:
 mode: queued
 max: 50
 
-trigger:
-  - platform: event
+variables:
+  bp_bindings: !input bindings
+
+triggers:
+  - trigger: event
     event_type: state_changed
 
-condition:
+conditions:
   - condition: template
     value_template: >-
-      {% set b = blueprint.inputs.bindings %}
-      {% if b is not iterable %}
-        false
-      {% else %}
-        {% set entities = b | map(attribute='switch') | list %}
-        {{ trigger.event.data.entity_id in entities }}
-      {% endif %}
+      {% set entities = bp_bindings | map(attribute='switch') | list %}
+      {{ trigger.event.data.entity_id in entities }}
   - condition: template
     value_template: >-
       {{ trigger.event.data.old_state is not none and trigger.event.data.new_state is not none }}
@@ -34,12 +32,12 @@ condition:
     value_template: >-
       {{ trigger.event.data.old_state.state != trigger.event.data.new_state.state }}
 
-action:
+actions:
   - variables:
       entity_id: "{{ trigger.event.data.entity_id }}"
       new_state: "{{ trigger.event.data.new_state.state }}"
       binding: >-
-        {{ (blueprint.inputs.bindings | selectattr('switch', 'equalto', entity_id) | list | first) }}
+        {{ (bp_bindings | selectattr('switch', 'equalto', entity_id) | list | first) }}
       light_entity: "{{ binding.light }}"
       link_mode: "{{ binding.mode | lower }}"
   - choose:
