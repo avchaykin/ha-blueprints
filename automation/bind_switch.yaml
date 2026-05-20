@@ -1,0 +1,66 @@
+blueprint:
+  name: Bind switch
+  description: Bind one or more switch entities to light entities using toggle or sync mode.
+  domain: automation
+  input:
+    bindings:
+      name: Bindings
+      description: >-
+        List of bindings. Each item must contain: switch, light, mode (toggle|sync).
+      selector:
+        object: {}
+
+mode: queued
+max: 50
+
+trigger:
+  - platform: event
+    event_type: state_changed
+
+condition:
+  - condition: template
+    value_template: >-
+      {% set b = blueprint.inputs.bindings %}
+      {% if b is not iterable %}
+        false
+      {% else %}
+        {% set entities = b | map(attribute='switch') | list %}
+        {{ trigger.event.data.entity_id in entities }}
+      {% endif %}
+  - condition: template
+    value_template: >-
+      {{ trigger.event.data.old_state is not none and trigger.event.data.new_state is not none }}
+  - condition: template
+    value_template: >-
+      {{ trigger.event.data.old_state.state != trigger.event.data.new_state.state }}
+
+action:
+  - variables:
+      entity_id: "{{ trigger.event.data.entity_id }}"
+      new_state: "{{ trigger.event.data.new_state.state }}"
+      binding: >-
+        {{ (blueprint.inputs.bindings | selectattr('switch', 'equalto', entity_id) | list | first) }}
+      light_entity: "{{ binding.light }}"
+      link_mode: "{{ binding.mode | lower }}"
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ link_mode == 'toggle' }}"
+        sequence:
+          - action: light.toggle
+            target:
+              entity_id: "{{ light_entity }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ link_mode == 'sync' and new_state == 'on' }}"
+        sequence:
+          - action: light.turn_on
+            target:
+              entity_id: "{{ light_entity }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ link_mode == 'sync' and new_state == 'off' }}"
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id: "{{ light_entity }}"
