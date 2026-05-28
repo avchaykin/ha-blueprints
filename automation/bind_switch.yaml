@@ -33,6 +33,11 @@ conditions:
   - condition: template
     value_template: >-
       {{ trigger.event.data.old_state.state != trigger.event.data.new_state.state }}
+  - condition: template
+    value_template: >-
+      {% set old_s = trigger.event.data.old_state.state | lower %}
+      {% set new_s = trigger.event.data.new_state.state | lower %}
+      {{ old_s in ['on', 'off'] and new_s in ['on', 'off'] }}
 
 actions:
   - variables:
