@@ -1,20 +1,22 @@
 blueprint:
   name: Motion activated light with condition
   description: >-
-    Turns on selected light sources when a motion sensor is activated and the
-    configured condition is true. Keeps them on for the configured time, then
-    turns them off. If motion is detected again while the timer is running, the
-    timer is restarted.
+    Turns on selected light sources when a motion/occupancy sensor is activated
+    and the configured condition is true. Keeps them on for the configured time,
+    then turns them off. If motion/occupancy is detected again while the timer is
+    running, the timer is restarted.
   domain: automation
   source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/automation/motion_activated_light_with_condition.yaml
   input:
     motion_sensor:
-      name: Motion sensor
-      description: Binary sensor that triggers the automation when it turns on.
+      name: Motion/occupancy sensor
+      description: Binary motion or occupancy sensor that triggers the automation when it turns on.
       selector:
         entity:
           domain: binary_sensor
-          device_class: motion
+          device_class:
+            - motion
+            - occupancy
 
     light_sources:
       name: Light sources

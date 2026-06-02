@@ -15,7 +15,7 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 
 ### Inputs
 
-- **Motion sensor**: binary motion sensor that triggers the automation
+- **Motion sensor**: binary motion/occupancy sensor that triggers the automation
 - **Light sources**: target containing lights/switches to turn on/off
 - **Duration**: time in seconds to keep sources on
 - **Condition**: Home Assistant condition that must be true before turning sources on
