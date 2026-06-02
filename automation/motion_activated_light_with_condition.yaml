@@ -1,0 +1,67 @@
+blueprint:
+  name: Motion activated light with condition
+  description: >-
+    Turns on selected light sources when a motion sensor is activated and the
+    configured condition is true. Keeps them on for the configured time, then
+    turns them off. If motion is detected again while the timer is running, the
+    timer is restarted.
+  domain: automation
+  source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/automation/motion_activated_light_with_condition.yaml
+  input:
+    motion_sensor:
+      name: Motion sensor
+      description: Binary sensor that triggers the automation when it turns on.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+
+    light_sources:
+      name: Light sources
+      description: Lights/switches/etc. to turn on for the selected time.
+      selector:
+        target:
+          entity:
+            domain:
+              - light
+              - switch
+
+    duration_seconds:
+      name: Duration
+      description: How long to keep the selected light sources on after motion is detected.
+      default: 300
+      selector:
+        number:
+          min: 1
+          max: 3600
+          step: 1
+          mode: box
+          unit_of_measurement: s
+
+    activation_conditions:
+      name: Condition
+      description: >-
+        Condition(s) that must be true before the lights are turned on.
+        Example: alarm_control_panel.home_alarm is in state armed_home.
+      selector:
+        condition: {}
+
+mode: restart
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input motion_sensor
+    to: "on"
+
+conditions: !input activation_conditions
+
+actions:
+  - action: homeassistant.turn_on
+    target: !input light_sources
+
+  - delay:
+      seconds: !input duration_seconds
+
+  - action: homeassistant.turn_off
+    target: !input light_sources

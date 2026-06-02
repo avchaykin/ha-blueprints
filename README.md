@@ -6,6 +6,27 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 
 ## Blueprints
 
+### Motion activated light with condition
+
+- File: `automation/motion_activated_light_with_condition.yaml`
+- Import URL:
+
+`https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/automation/motion_activated_light_with_condition.yaml`
+
+### Inputs
+
+- **Motion sensor**: binary motion sensor that triggers the automation
+- **Light sources**: target containing lights/switches to turn on/off
+- **Duration**: time in seconds to keep sources on
+- **Condition**: Home Assistant condition that must be true before turning sources on
+
+### Behavior
+
+- On motion (`on`) checks the configured condition.
+- If condition is true, turns on selected sources.
+- Waits for the configured duration and turns them off.
+- `mode: restart` means repeated motion restarts the timer.
+
 ### 1) Label state change notifier
 
 - File: `automation/label_state_change.yaml`
