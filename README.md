@@ -24,7 +24,9 @@ Blueprints are grouped by type at repository root (for example `automation/`, `s
 
 - On motion (`on`) checks the configured condition.
 - If condition is true, turns on selected sources.
-- Waits for the configured duration and turns them off.
+- Waits for the configured duration.
+- If the motion/occupancy sensor is still active (`on` / UI `yes`), keeps the sources on.
+- Turns sources off only after the sensor becomes inactive (`off` / UI `no`).
 - `mode: restart` means repeated motion restarts the timer.
 
 ### 1) Label state change notifier

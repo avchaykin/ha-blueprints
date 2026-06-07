@@ -3,8 +3,9 @@ blueprint:
   description: >-
     Turns on selected light sources when a motion/occupancy sensor is activated
     and the configured condition is true. Keeps them on for the configured time,
-    then turns them off. If motion/occupancy is detected again while the timer is
-    running, the timer is restarted.
+    then turns them off after the sensor is inactive. If motion/occupancy is
+    detected again while the timer is running, the timer is restarted. The lights
+    are never turned off while the motion/occupancy sensor is still active.
   domain: automation
   source_url: https://raw.githubusercontent.com/avchaykin/ha-blueprints/main/automation/motion_activated_light_with_condition.yaml
   input:
@@ -51,6 +52,9 @@ blueprint:
 mode: restart
 max_exceeded: silent
 
+variables:
+  bp_motion_sensor: !input motion_sensor
+
 triggers:
   - trigger: state
     entity_id: !input motion_sensor
@@ -64,6 +68,8 @@ actions:
 
   - delay:
       seconds: !input duration_seconds
+
+  - wait_template: "{{ is_state(bp_motion_sensor, 'off') }}"
 
   - action: homeassistant.turn_off
     target: !input light_sources
